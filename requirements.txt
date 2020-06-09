@@ -1,0 +1,3 @@
+dataclass_property>=1.1.0
+# pydantic>=1.5.1
+# pydantic_decoder>=1.0.0
