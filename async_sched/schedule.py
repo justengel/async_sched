@@ -4,17 +4,15 @@ import asyncio
 import datetime
 from typing import Union, Callable, Awaitable, Tuple, Optional, ClassVar
 
-from dataclass_property import dataclass, field_property, field, MISSING, \
-    Weekdays, weekdays_property, \
-    datetime_property, time_property, timedelta_helper_property, seconds_property,\
-    make_time, make_date, make_datetime, str_time, str_date, str_datetime
+from serial_json import DataClass, field, field_property, MISSING, \
+    Weekdays, weekdays_property, weekdays_attr_property, \
+    datetime_property, time_property, timedelta_attr_property, seconds_property, make_datetime
 
 
 __all__ = ['Schedule']
 
 
-@dataclass
-class Schedule:
+class Schedule(DataClass):
     """Schedule a service to run.
 
     Example:
@@ -73,11 +71,11 @@ class Schedule:
         saturdays (bool)[None]: Allow the schedule to run on saturdays. If all weekdays are None allow all weekdays.
 
         repeat (bool)[True]: If True repeat the schedule else run once.
-        at (datetime.datetime/str)[None]: Time of day when the schedule should run.
-        start_on (datetime.datetime/str)[datetime.datetime.now()]: Date and time on which to start on.
-        end_on (datetime.datetime/str)[None]: Date and time on which to end on.
-        last_run (datetime.datetime/str)[None]: Date and time to make the next_run from.
-        next_run (datetime.datetime/str)[None]: Manually set the next run time.
+        at (Time/str)[None]: Time of day when the schedule should run.
+        start_on (DateTime/str)[datetime.datetime.now()]: Date and time on which to start on.
+        end_on (DateTime/str)[None]: Date and time on which to end on.
+        last_run (DateTime/str)[None]: Date and time to make the next_run from.
+        next_run (DateTime/str)[None]: Manually set the next run time.
     """
     days: int = 0
     hours: int = 0
@@ -86,23 +84,23 @@ class Schedule:
     microseconds: int = 0
     seconds: Union[int, float] = seconds_property('seconds')
     weeks: int = 0
-    interval: datetime.timedelta = timedelta_helper_property()
+    interval: datetime.timedelta = timedelta_attr_property(required=False)
 
-    weekdays: Weekdays = field(default_factory=Weekdays)
-    sunday: bool = weekdays_property('sunday')
-    monday: bool = weekdays_property('monday')
-    tuesday: bool = weekdays_property('tuesday')
-    wednesday: bool = weekdays_property('wednesday')
-    thursday: bool = weekdays_property('thursday')
-    friday: bool = weekdays_property('friday')
-    saturday: bool = weekdays_property('saturday')
+    weekdays: Weekdays = weekdays_property('weekdays', default_factory=Weekdays)
+    sunday: bool = weekdays_attr_property('weekdays', 'sunday')
+    monday: bool = weekdays_attr_property('weekdays', 'monday')
+    tuesday: bool = weekdays_attr_property('weekdays', 'tuesday')
+    wednesday: bool = weekdays_attr_property('weekdays', 'wednesday')
+    thursday: bool = weekdays_attr_property('weekdays', 'thursday')
+    friday: bool = weekdays_attr_property('weekdays', 'friday')
+    saturday: bool = weekdays_attr_property('weekdays', 'saturday')
 
-    repeat: bool = True
-    at: Optional[datetime.time] = time_property('at', allow_none=True)
+    repeat: bool = False
+    at: Optional[datetime.time] = time_property('at', allow_none=True, required=False)
     start_on: Optional[datetime.datetime] = datetime_property('start_on', default_factory=datetime.datetime.now)
-    end_on: Optional[datetime.datetime] = datetime_property('end_on', allow_none=True)
-    last_run: Optional[datetime.datetime] = datetime_property('last_run', allow_none=True)
-    _next_run: Union[datetime.datetime, None] = field(default=None, init=False, repr=False)
+    end_on: Optional[datetime.datetime] = datetime_property('end_on', allow_none=True, required=False)
+    last_run: Optional[datetime.datetime] = datetime_property('last_run', allow_none=True, required=False)
+    _next_run: Union[datetime.datetime, None] = field(default=None, repr=False)
 
     @field_property(default=None)
     def next_run(self) -> Union[datetime.datetime, None]:
@@ -122,24 +120,6 @@ class Schedule:
         if value is not None:
             value = make_datetime(value)
         self._next_run = value
-
-    EXCLUDE_FIELDS = ('interval', *Weekdays.DAYS, 'next_run')
-    INCLUDE_FIELDS = ('_next_run', )
-
-    def __post_init__(self):
-        # Change my fields for asdict
-        include = {k: self.__class__.__dataclass_fields__[k] for k in self.INCLUDE_FIELDS}
-        self.__dataclass_fields__ = {k: v for k, v in self.__class__.__dataclass_fields__.items()
-                                     if k not in self.EXCLUDE_FIELDS}
-        self.__dataclass_fields__.update(include)
-
-    # ========== Methods ==========
-    make_date = staticmethod(make_date)
-    make_datetime = staticmethod(make_datetime)
-    make_time = staticmethod(make_time)
-    str_date = staticmethod(str_date)
-    str_datetime = staticmethod(str_datetime)
-    str_time = staticmethod(str_time)
 
     def run_in(self, now: datetime.datetime = None) -> Union[float, int]:
         """Return the number of seconds to wait until this should run."""
@@ -163,7 +143,7 @@ class Schedule:
         """Return if this datetime is past the end_on datetime and should stop running"""
         if now is None:
             now = datetime.datetime.now()
-        return self.end_on and now > self.end_on
+        return self.end_on and now >= self.end_on
 
     def wait(self, now: datetime.datetime = None) -> 'Schedule':
         """Wait until it is time to run."""
@@ -242,11 +222,11 @@ class Schedule:
         if isinstance(dt, datetime.timedelta):
             today = datetime.datetime.today()
             return datetime.datetime(year=today.year, month=today.month, day=today.day,
-                                     hour=0, minute=0, second=0, microsecond=0) + dt
+                            hour=0, minute=0, second=0, microsecond=0) + dt
         else:
             return datetime.datetime(year=dt.year, month=dt.month, day=dt.day,
-                                     hour=self.at.hour, minute=self.at.minute, second=self.at.second,
-                                     microsecond=self.at.microsecond)
+                            hour=self.at.hour, minute=self.at.minute, second=self.at.second,
+                            microsecond=self.at.microsecond)
 
     def create_run_time(self) -> Union[datetime.datetime, None]:
         """Make the next_run datetime."""
@@ -284,11 +264,3 @@ class Schedule:
 
     def __repr__(self) -> str:
         return '<{str} at {id}>'.format(str=self.__str__(), id=id(self))
-
-    # ========== Data Serialization ==========
-    # def __getstate__(self) -> dict:
-    #     return self.dict()
-    #
-    # def __setstate__(self, state: dict):
-    #     for k, v in state.items():
-    #         setattr(self, k, v)

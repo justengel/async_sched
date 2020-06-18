@@ -1,7 +1,7 @@
 
 def check_values(obj, days=0, hours=0, minutes=0, seconds=0, milliseconds=0, microseconds=0,
                  sunday=True, monday=True, tuesday=True, wednesday=True, thursday=True, friday=True, saturday=True,
-                 at=None, start_on=None, end_on=None, repeat=True, last_run=None, next_run=None):
+                 at=None, start_on=None, end_on=None, repeat=False, last_run=None, next_run=None):
     assert obj.days == days, f'{obj.days} != {days}'
     assert obj.hours == hours, f'{obj.hours} != {hours}'
     assert obj.minutes == minutes, f'{obj.minutes} != {minutes}'
@@ -71,11 +71,10 @@ def test_interval_properties():
 
 
 def test_serializer():
-    from dataclass_property import asdict
     from async_sched.schedule import Schedule
 
     s = Schedule(seconds=0.5)
-    d = asdict(s)
+    d = s.dict()
     assert 'days' in d and d['days'] == s.days
     assert 'hours' in d and d['hours'] == s.hours
     assert 'minutes' in d and d['minutes'] == s.minutes
@@ -93,7 +92,7 @@ def test_serializer():
 
     s = Schedule(hours=1, sunday=False, at='6:40 PM')
     print(s)
-    d = asdict(s)
+    d = s.dict()
     assert 'days' in d and d['days'] == s.days
     assert 'hours' in d and d['hours'] == s.hours
     assert 'minutes' in d and d['minutes'] == s.minutes

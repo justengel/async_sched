@@ -77,7 +77,7 @@ if __name__ == "__main__":
 
           # options to install extra requirements
           install_requires=[
-              'dataclass_property>=1.1.0',
+              'serial_json>=1.2.3',
               ],
           extras_require={
               },

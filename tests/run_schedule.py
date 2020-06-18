@@ -7,8 +7,8 @@ if __name__ == '__main__':
     async def print_schedule(schedule):
         print(schedule)
 
-    second = Schedule(seconds=1, thursday=False)
-    more = Schedule(seconds=0.5)
+    second = Schedule(seconds=1, thursday=False, repeat=True)
+    more = Schedule(seconds=0.5, repeat=True)
 
     loop = asyncio.get_event_loop()
 
