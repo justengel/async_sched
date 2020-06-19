@@ -51,7 +51,7 @@ class Scheduler(object):
         for filename in os.listdir(self.command_path):
             try:
                 name = os.path.splitext(filename)[0]
-                mod = __import__(filename)  # Use get_server() to register the callback.
+                mod = __import__(name)  # Use get_server() to register the callback.
             except (ImportError, Exception) as err:
                 print_exception(err, msg='Could not import {}'.format(filename))
 
