@@ -3,7 +3,7 @@ from .utils import ScheduleError
 from .schedule import Schedule
 
 try:
-    from .server import Scheduler, Client, \
+    from .server import get_server, set_server, Scheduler, Client, \
         Message, Error, Quit, Update, RunCommand, ScheduleCommand, RunningSchedule, ListSchedules, StopSchedule
 except (ImportError, Exception) as err:
     error = err
@@ -12,6 +12,8 @@ except (ImportError, Exception) as err:
             raise EnvironmentError('Dependencies not installed! '
                                    'Libraries pydantic and pydantic_decoder are required!') from error
 
+    get_server = ClassEnvironmentError
+    set_server = ClassEnvironmentError
     Scheduler = ClassEnvironmentError
     Client = ClassEnvironmentError
 

@@ -4,6 +4,8 @@ import async_sched
 
 if __name__ == '__main__':
     server = async_sched.Scheduler()
+    async_sched.set_server(server)  # Set the global server for load.
+
     server.start('127.0.0.1', 8000)
 
     @server.register_callback('print')
