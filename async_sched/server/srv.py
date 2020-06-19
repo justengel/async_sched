@@ -94,7 +94,7 @@ class Scheduler(object):
         return func
 
     async def handle_client(self, reader, writer):
-        while self.is_serving():
+        while self.is_serving() and not reader.at_eof() and not writer.is_closing():
             try:
                 data = await reader.read(self.READ_SIZE)
                 if not data:
