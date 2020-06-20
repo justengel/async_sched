@@ -77,7 +77,7 @@ if __name__ == "__main__":
 
           # options to install extra requirements
           install_requires=[
-              'serial_json>=1.2.4',
+              'serial_json>=1.2.5',
               ],
           extras_require={
               },
