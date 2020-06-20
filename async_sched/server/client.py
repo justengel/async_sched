@@ -71,7 +71,7 @@ class Client(object):
 
         data = await self.reader.read(self.READ_SIZE)
         message = DataClass.from_json(data)
-        print(f'{message.message!r}')
+        print(f'{message.message}')
 
     async def send_update(self):
         """Send the quit command."""
@@ -80,7 +80,7 @@ class Client(object):
 
         data = await self.reader.read(self.READ_SIZE)
         message = DataClass.from_json(data)
-        print(f'{message.message!r}')
+        print(f'{message.message}')
 
     async def request_schedules(self):
         """Print the list of schedules."""
@@ -102,7 +102,7 @@ class Client(object):
 
         data = await self.reader.read(self.READ_SIZE)
         message = DataClass.from_json(data)
-        print(f'{message.message!r}')
+        print(f'{message.message}')
 
     async def schedule_command(self, name: str, schedule: Schedule, callback_name, *args, **kwargs):
         """Print the list of schedules."""
@@ -113,7 +113,7 @@ class Client(object):
 
         data = await self.reader.read(self.READ_SIZE)
         message = DataClass.from_json(data)
-        print(f'{message.message!r}')
+        print(f'{message.message}')
 
     async def stop_schedule(self, name: str):
         """Stop a running schedule."""
@@ -122,7 +122,7 @@ class Client(object):
 
         data = await self.reader.read(self.READ_SIZE)
         message = DataClass.from_json(data)
-        print(f'{message.message!r}')
+        print(f'{message.message}')
 
     async def __aenter__(self):
         if not await self.is_connected():
