@@ -9,7 +9,7 @@ from serial_json import DataClass, field, field_property, MISSING, \
     datetime_property, time_property, timedelta_attr_property, seconds_property, make_datetime
 
 
-__all__ = ['Schedule']
+__all__ = ['Schedule', 'RepeatSchedule']
 
 
 class Schedule(DataClass):
@@ -77,30 +77,31 @@ class Schedule(DataClass):
         last_run (DateTime/str)[None]: Date and time to make the next_run from.
         next_run (DateTime/str)[None]: Manually set the next run time.
     """
-    days: int = 0
-    hours: int = 0
-    minutes: int = 0
-    milliseconds: int = 0
-    microseconds: int = 0
-    seconds: Union[int, float] = seconds_property('seconds')
-    weeks: int = 0
-    interval: datetime.timedelta = timedelta_attr_property(required=False)
+    days: int = field(0, skip_repr=0, skip_dict=0)
+    hours: int = field(0, skip_repr=0, skip_dict=0)
+    minutes: int = field(0, skip_repr=0, skip_dict=0)
+    milliseconds: int = field(0, skip_repr=0, skip_dict=0)
+    microseconds: int = field(0, skip_repr=0, skip_dict=0)
+    seconds: Union[int, float] = seconds_property('seconds', skip_repr=0, skip_dict=0)
+    weeks: int = field(0, skip_repr=0, skip_dict=0)
+    interval: datetime.timedelta = timedelta_attr_property(required=False, repr=False, dict=False)
 
-    weekdays: Weekdays = weekdays_property('weekdays', default_factory=Weekdays)
-    sunday: bool = weekdays_attr_property('weekdays', 'sunday')
-    monday: bool = weekdays_attr_property('weekdays', 'monday')
-    tuesday: bool = weekdays_attr_property('weekdays', 'tuesday')
-    wednesday: bool = weekdays_attr_property('weekdays', 'wednesday')
-    thursday: bool = weekdays_attr_property('weekdays', 'thursday')
-    friday: bool = weekdays_attr_property('weekdays', 'friday')
-    saturday: bool = weekdays_attr_property('weekdays', 'saturday')
+    weekdays: Weekdays = weekdays_property('weekdays', default_factory=Weekdays,
+                                           skip_repr=Weekdays(), skip_dict=Weekdays())
+    sunday: bool = weekdays_attr_property('weekdays', 'sunday', repr=False, dict=False)
+    monday: bool = weekdays_attr_property('weekdays', 'monday', repr=False, dict=False)
+    tuesday: bool = weekdays_attr_property('weekdays', 'tuesday', repr=False, dict=False)
+    wednesday: bool = weekdays_attr_property('weekdays', 'wednesday', repr=False, dict=False)
+    thursday: bool = weekdays_attr_property('weekdays', 'thursday', repr=False, dict=False)
+    friday: bool = weekdays_attr_property('weekdays', 'friday', repr=False, dict=False)
+    saturday: bool = weekdays_attr_property('weekdays', 'saturday', repr=False, dict=False)
 
     repeat: bool = False
-    at: Optional[datetime.time] = time_property('at', allow_none=True, required=False)
-    start_on: Optional[datetime.datetime] = datetime_property('start_on', default_factory=datetime.datetime.now)
-    end_on: Optional[datetime.datetime] = datetime_property('end_on', allow_none=True, required=False)
-    last_run: Optional[datetime.datetime] = datetime_property('last_run', allow_none=True, required=False)
-    _next_run: Union[datetime.datetime, None] = field(default=None, repr=False)
+    at: datetime.time = time_property('at', allow_none=True, required=False, skip_repr=None, skip_dict=None)
+    start_on: datetime.datetime = datetime_property('start_on', default_factory=datetime.datetime.now, repr=False)
+    end_on: datetime.datetime = datetime_property('end_on', allow_none=True, required=False, skip_repr=None, skip_dict=None)
+    last_run: datetime.datetime = datetime_property('last_run', allow_none=True, required=False, repr=False, skip_dict=None)
+    _next_run: Union[datetime.datetime, None] = field(default=None, repr=False, skip_dict=None)
 
     @field_property(default=None)
     def next_run(self) -> Union[datetime.datetime, None]:
@@ -253,14 +254,18 @@ class Schedule(DataClass):
 
         return dt
 
-    def __str__(self) -> str:
-        attrs = tuple('{}={}'.format(attr, getattr(self, attr))
-                      for attr in self.STRING_NAME_ATTRS if getattr(self, attr))
+    # def __str__(self) -> str:
+    #     attrs = tuple('{}={}'.format(attr, getattr(self, attr))
+    #                   for attr in self.STRING_NAME_ATTRS if getattr(self, attr))
+    #
+    #     allowed_weekdays = self.allowed_weekdays()
+    #     if allowed_weekdays != self.WEEKDAY_ATTRS:
+    #         attrs = attrs + ('on=[' + ', '.join(allowed_weekdays) + ']',)
+    #     return '{cls}({attrs})'.format(cls=self.__class__.__name__, attrs=', '.join(attrs))
+    #
+    # def __repr__(self) -> str:
+    #     return '<{str} at {id}>'.format(str=self.__str__(), id=id(self))
 
-        allowed_weekdays = self.allowed_weekdays()
-        if allowed_weekdays != self.WEEKDAY_ATTRS:
-            attrs = attrs + ('on=[' + ', '.join(allowed_weekdays) + ']',)
-        return '{cls}({attrs})'.format(cls=self.__class__.__name__, attrs=', '.join(attrs))
 
-    def __repr__(self) -> str:
-        return '<{str} at {id}>'.format(str=self.__str__(), id=id(self))
+class RepeatSchedule(Schedule):
+    repeat: bool = True

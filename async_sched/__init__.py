@@ -1,6 +1,6 @@
 
 from .utils import ScheduleError
-from .schedule import Schedule
+from .schedule import Schedule, RepeatSchedule
 
 try:
     from .server import get_server, set_server, Scheduler, Client, \
