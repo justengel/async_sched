@@ -93,7 +93,7 @@ class Client(object):
         message = DataClass.from_json(data)
         print('Running Schedules:')
         for running in message.schedules:
-            print(f'{running.name} = {running.schedule}')
+            print(f'  {running.name} = {running.schedule}')
 
     async def run_command(self, callback_name, *args, **kwargs):
         """Print the list of schedules."""

@@ -2,6 +2,7 @@ import time
 import inspect
 import asyncio
 import datetime
+import logging
 from typing import Union, Callable, Awaitable, Tuple, Optional, ClassVar
 
 from serial_json import DataClass, field, field_property, MISSING, \
@@ -103,6 +104,8 @@ class Schedule(DataClass):
     last_run: datetime.datetime = datetime_property('last_run', allow_none=True, required=False, repr=False, skip_dict=None)
     _next_run: Union[datetime.datetime, None] = field(default=None, repr=False, skip_dict=None)
 
+    logger: logging.Logger = field(default=logging.getLogger('asyncio'), repr=False, dict=False, hash=False, compare=False)
+
     @field_property(default=None)
     def next_run(self) -> Union[datetime.datetime, None]:
         # Check end on
@@ -181,17 +184,30 @@ class Schedule(DataClass):
         self.wait()
         self.reschedule()
 
-        if callable(callback):
-            return callback(*args, **kwargs)
+        task = asyncio.Task.current_task().get_name()
+        self.logger.info(f'Running Task "{task}" with {self}')
+
+        try:
+            if callable(callback):
+                return callback(*args, **kwargs)
+        except Exception as err:
+            self.logger.critical(f'Error in Task "{task}": {err}')
 
     async def call_async(self, callback: Callable[..., Awaitable[None]] = None, *args, **kwargs) -> object:
         """Run the set callback and setup repeat if set."""
         await self.wait_async()
         await self.reschedule_async()
-        if inspect.iscoroutinefunction(callback):
-            return await callback(*args, **kwargs)
-        elif callable(callback):
-            return callback(*args, **kwargs)
+
+        task = asyncio.Task.current_task().get_name()
+        self.logger.info(f'Running Task "{task}" with {self}')
+
+        try:
+            if inspect.iscoroutinefunction(callback):
+                return await callback(*args, **kwargs)
+            elif callable(callback):
+                return callback(*args, **kwargs)
+        except Exception as err:
+            self.logger.critical(f'Error in Task "{task}": {err}')
 
     def run(self, callback: Callable = None, *args, **kwargs) -> 'Schedule':
         """Loop until and call this function until the schedule ends."""
@@ -204,10 +220,6 @@ class Schedule(DataClass):
         while not self.past_end():
             await self.call_async(callback, *args, **kwargs)
         return self
-
-    WEEKDAY_ATTRS = tuple(Weekdays.DAYS)
-    INTERVAL_ATTRS = ('weeks', 'days', 'hours', 'minutes', 'seconds', 'milliseconds')
-    STRING_NAME_ATTRS = INTERVAL_ATTRS + ('repeat', 'at')
 
     def allowed_weekdays(self) -> Tuple[str]:
         """Return if all of the days of the week are None."""
@@ -253,18 +265,6 @@ class Schedule(DataClass):
                 return None
 
         return dt
-
-    # def __str__(self) -> str:
-    #     attrs = tuple('{}={}'.format(attr, getattr(self, attr))
-    #                   for attr in self.STRING_NAME_ATTRS if getattr(self, attr))
-    #
-    #     allowed_weekdays = self.allowed_weekdays()
-    #     if allowed_weekdays != self.WEEKDAY_ATTRS:
-    #         attrs = attrs + ('on=[' + ', '.join(allowed_weekdays) + ']',)
-    #     return '{cls}({attrs})'.format(cls=self.__class__.__name__, attrs=', '.join(attrs))
-    #
-    # def __repr__(self) -> str:
-    #     return '<{str} at {id}>'.format(str=self.__str__(), id=id(self))
 
 
 class RepeatSchedule(Schedule):

@@ -2,6 +2,10 @@
 import asyncio
 from async_sched import Schedule, RepeatSchedule
 
+import logging
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.getLogger("asyncio").setLevel(logging.DEBUG)
+
 
 if __name__ == '__main__':
     async def print_schedule(schedule):

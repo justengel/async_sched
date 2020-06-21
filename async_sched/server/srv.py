@@ -1,5 +1,6 @@
 import os
 import sys
+import logging
 import asyncio
 from typing import Callable, Awaitable, Union
 
@@ -31,8 +32,9 @@ class Scheduler(object):
 
     READ_SIZE = 4096
 
-    def __init__(self, command_path=None, loop: asyncio.AbstractEventLoop = None):
+    def __init__(self, command_path=None, logger: logging.Logger = None, loop: asyncio.AbstractEventLoop = None):
         self._loop = loop
+        self.logger = logger or logging.getLogger("asyncio")
 
         self.command_path = command_path
         self.tasks = {}
@@ -94,6 +96,9 @@ class Scheduler(object):
         return func
 
     async def handle_client(self, reader, writer):
+        addr = writer.get_extra_info('peername')
+        self.logger.info(f'Client connected {addr}')
+
         while self.is_serving() and not reader.at_eof() and not writer.is_closing():
             try:
                 data = await reader.read(self.READ_SIZE)
@@ -102,18 +107,27 @@ class Scheduler(object):
             except (TypeError, ValueError, Exception):
                 break
 
-            message = DataClass.from_json(data)
+            try:
+                message = DataClass.from_json(data)
+            except (TypeError, ValueError, Exception):
+                self.logger.error('Invalid data received!')
+                message = None
+                continue
+
             if isinstance(message, Quit):
+                self.logger.info('Quit Received')
                 writer.write(Message(message='Stopping server').json().encode())
                 await writer.drain()
                 await self.stop_async()
 
             elif isinstance(message, Update):
+                self.logger.info('Update Received')
                 self.update_commands()
                 writer.write(Message(message='Updated commands').json().encode())
                 await writer.drain()
 
             elif isinstance(message, ListSchedules):
+                self.logger.info('List Schedules Received')
                 try:
                     li = ListSchedules(schedules=[RunningSchedule(name=name, schedule=Schedule(**item[1].dict()))
                                                   for name, item in self.tasks.items()])
@@ -124,6 +138,7 @@ class Scheduler(object):
                 await writer.drain()
 
             elif isinstance(message, RunCommand):
+                self.logger.info(f'Run Command "{message.callback_name}" Received')
                 try:
                     cmd = self.callbacks[message.callback_name]
                     cmd(*message.args, **message.kwargs)
@@ -134,6 +149,7 @@ class Scheduler(object):
                 await writer.drain()
 
             elif isinstance(message, ScheduleCommand):
+                self.logger.info(f'Schedule Command "{message.name}" Received')
                 try:
                     s = message.schedule
                     cmd = self.callbacks[message.callback_name]
@@ -145,6 +161,7 @@ class Scheduler(object):
                 await writer.drain()
 
             elif isinstance(message, StopSchedule):
+                self.logger.info(f'Stop Schedule "{message.name}" Received')
                 try:
                     self.remove(message.name)
                     writer.write(Message(message='Stopped running the schedule named "{}"!'.format(message.name)).json().encode())
@@ -154,11 +171,13 @@ class Scheduler(object):
                 await writer.drain()
 
             else:
+                self.logger.info(f'Unknown Command Received')
                 writer.write(Error(message='Unknown command given!').json().encode())
                 await writer.drain()
 
         # Close when ending
         writer.close()
+        self.logger.info(f'Client closed {addr}')
 
     def is_serving(self) -> bool:
         """Return if the server is running."""
@@ -177,30 +196,25 @@ class Scheduler(object):
         self.server = await asyncio.start_server(self.handle_client, ip_addr, port)
 
         addr = self.server.sockets[0].getsockname()
-        print(f'===== Serving on {addr} =====')
+        self.logger.info(f'Started Serving on {addr}')
 
         try:
             async with self.server:
                 await self.server.serve_forever()
         finally:
-            print(f'===== Stopped serving on {addr} =====')
+            self.logger.info(f'Stopped serving on {addr}')
 
     def stop(self):
         """Stop running the server."""
-        for k in self.server_task.all_tasks():
-            print(k)
-        print('========================')
+        self.logger.info('Attempting to stop the server')
         try:
             self.server.close()
         except (AttributeError, Exception):
             pass
-        # try:
-        #     self.server_task.cancel()
-        # except (AttributeError, Exception):
-        #     pass
-
-        for k in self.server_task.all_tasks():
-            print(k)
+        try:
+            self.server_task.stop()
+        except (AttributeError, Exception):
+            pass
 
         return self
 
@@ -244,3 +258,11 @@ class Scheduler(object):
     def run_forever(self):
         """Start running the asyncio event loop forever."""
         return self.loop.run_forever()
+
+    def get_debug(self) -> bool:
+        """Return if the asyncio loop is logging."""
+        return self.loop.get_debug()
+
+    def set_debug(self, value: bool):
+        """Set if the asyncio loop should be logging."""
+        self.loop.set_debug(value)
