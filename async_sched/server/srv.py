@@ -232,9 +232,11 @@ class Scheduler(object):
             *args (tuple/object): Positional arguments to pass into the callback function.
             **kwargs (dict/object): Keyword arguments to pass into the callback function.
         """
+        # Remove any old tasks with the same name
+        self.remove(name)
+
+        # Start a new task
         task = self.loop.create_task(schedule.run_async(callback, *args, **kwargs), name=name)
-        if name in self.tasks:
-            self.tasks[name].stop()
         self.tasks[name] = [task, schedule]
 
     def remove(self, name: str):
@@ -243,8 +245,14 @@ class Scheduler(object):
         Args:
             name (str): Name of the schedule
         """
-        if name in self.tasks:
-            self.tasks[name][0].stop()
+        for task in asyncio.all_tasks(self.loop):
+            if name == task.get_name():
+                task.cancel()
+                break
+        try:
+            self.tasks.pop(name)
+        except:
+            pass
 
     # ========== Loop Functions ==========
     def create_task(self, coro, *, name=None):
