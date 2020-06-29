@@ -2,7 +2,7 @@ import os
 import sys
 import logging
 import asyncio
-from typing import Callable, Awaitable, Union
+from typing import Callable, Awaitable, Union, Tuple
 
 from serial_json import DataClass, loads, dumps
 
@@ -12,7 +12,7 @@ from .messages import Message, Error, Quit, Update, RunCommand, ScheduleCommand,
     ListSchedules, StopSchedule
 
 
-__all__ = ['get_server', 'set_server', 'Scheduler']
+__all__ = ['get_server', 'set_server', 'start_server', 'Scheduler']
 
 
 SERVER = None
@@ -28,11 +28,46 @@ def set_server(value):
     SERVER = value
 
 
+def start_server(addr: Union[str, Tuple[str, int]] = None, port: int = 8000, command_path=None,
+                 global_server: bool = False, logger: logging.Logger = None, loop: asyncio.AbstractEventLoop = None):
+    """Create a scheduler and start it as a server.
+
+    Args:
+        addr (str/tuple)[None]: Ip address or tuple of ip address, port.
+        port (int)[8000]: Socket port to connect to.
+        command_path (str)[None]: Path to directory that holds importable python files to run schedules with.
+        global_server (bool)[False]: If True set this server as the main global server.
+        logger (logging.Logger)[None]: Python logger
+        loop (asyncio.AbstractEventLoop)[None]: Async event loop to run with if None use the running loop.
+    """
+    srv = Scheduler(addr=addr, port=port, command_path=command_path, logger=logger, loop=loop)
+    if global_server:
+        set_server(srv)
+
+    srv.start(addr)
+    return srv
+
+
 class Scheduler(object):
 
     READ_SIZE = 4096
 
-    def __init__(self, command_path=None, logger: logging.Logger = None, loop: asyncio.AbstractEventLoop = None):
+    def __init__(self, addr: Union[str, Tuple[str, int]] = None, port: int = 8000, command_path=None,
+                 logger: logging.Logger = None, loop: asyncio.AbstractEventLoop = None):
+        """Create a scheduler and start it as a server.
+
+        Args:
+            addr (str/tuple)[None]: Ip address or tuple of ip address, port.
+            port (int)[8000]: Socket port to connect to.
+            command_path (str)[None]: Path to directory that holds importable python files to run schedules with.
+            logger (logging.Logger)[None]: Python logger
+            loop (asyncio.AbstractEventLoop)[None]: Async event loop to run with if None use the running loop.
+        """
+        if not isinstance(addr, (list, tuple)):
+            addr = (addr, port)
+        if len(addr) == 1:
+            addr = addr + (port,)
+
         self._loop = loop
         self.logger = logger or logging.getLogger("asyncio")
 
@@ -41,6 +76,9 @@ class Scheduler(object):
         self.callbacks = {}
         self.server = None
         self.server_task = None
+
+        self.ip_address = addr[0]
+        self.port = addr[1]
 
     def update_commands(self):
         """Read all of the files in the command path and register those commands to be able to run."""
@@ -96,6 +134,7 @@ class Scheduler(object):
         return func
 
     async def handle_client(self, reader, writer):
+        """Run the client. This code handles the communication between the client and server."""
         addr = writer.get_extra_info('peername')
         self.logger.info(f'Client connected {addr}')
 
@@ -186,14 +225,23 @@ class Scheduler(object):
         except (AttributeError, Exception):
             return False
 
-    def start(self, ip_addr: str = '127.0.0.1', port: int = 8000) -> 'Scheduler':
+    def start(self, addr: Union[str, Tuple[str, int]] = None, port: int = None, **kwargs) -> 'Scheduler':
         """Add a task to start running the server forever."""
-        self.server_task = self.loop.create_task(self.start_async(ip_addr, port), name='server')
+        self.server_task = self.loop.create_task(self.start_async(addr=addr, port=port, **kwargs), name='server')
         return self
 
-    async def start_async(self, ip_addr: str = '127.0.0.1', port: int = 8000):
+    async def start_async(self, addr: Union[str, Tuple[str, int]] = None, port: int = None, **kwargs):
         """Start running the server forever."""
-        self.server = await asyncio.start_server(self.handle_client, ip_addr, port)
+        if isinstance(addr, (list, tuple)):
+            if len(addr) > 0:
+                self.ip_address = addr[0]
+            if len(addr) > 1:
+                self.port = addr[1]
+        elif isinstance(addr, str):
+            self.ip_address = addr
+        if isinstance(port, int):
+            self.port = port
+        self.server = await asyncio.start_server(self.handle_client, self.ip_address, self.port, loop=self.loop, **kwargs)
 
         addr = self.server.sockets[0].getsockname()
         self.logger.info(f'Started Serving on {addr}')
