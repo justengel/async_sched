@@ -75,38 +75,38 @@ def test_serializer():
 
     s = Schedule(seconds=0.5)
     d = s.dict()
-    assert 'days' in d and d['days'] == s.days
-    assert 'hours' in d and d['hours'] == s.hours
-    assert 'minutes' in d and d['minutes'] == s.minutes
-    assert 'milliseconds' in d and d['milliseconds'] == s.milliseconds
-    assert 'microseconds' in d and d['microseconds'] == s.microseconds
-    assert 'seconds' in d and d['seconds'] == s.seconds
-    assert 'weeks' in d and d['weeks'] == s.weeks
-    assert 'weekdays' in d and d['weekdays'] == s.weekdays, '{} != {}'.format(d['weekdays'], s.weekdays)
-    assert 'repeat' in d and d['repeat'] == s.repeat
-    assert 'at' in d and d['at'] == s.at
-    assert 'start_on' in d and d['start_on'] == s.start_on
-    assert 'end_on' in d and d['end_on'] == s.end_on
-    assert 'last_run' in d and d['last_run'] == s.last_run
-    assert '_next_run' in d and d['_next_run'] == s._next_run
+    assert 'days' not in d or d['days'] == s.days
+    assert 'hours' not in d or d['hours'] == s.hours
+    assert 'minutes' not in d or d['minutes'] == s.minutes
+    assert 'milliseconds' not in d or d['milliseconds'] == s.milliseconds
+    assert 'microseconds' not in d or d['microseconds'] == s.microseconds
+    assert 'seconds' not in d or d['seconds'] == s.seconds
+    assert 'weeks' not in d or d['weeks'] == s.weeks
+    assert 'weekdays' not in d or d['weekdays'] == s.weekdays, '{} != {}'.format(d['weekdays'], s.weekdays)
+    assert 'repeat' not in d or d['repeat'] == s.repeat
+    assert 'at' not in d or d['at'] == s.at
+    assert 'start_on' not in d or d['start_on'] == s.start_on
+    assert 'end_on' not in d or d['end_on'] == s.end_on
+    assert 'last_run' not in d or d['last_run'] == s.last_run
+    assert '_next_run' not in d or d['_next_run'] == s._next_run
 
     s = Schedule(hours=1, sunday=False, at='6:40 PM')
     print(s)
     d = s.dict()
-    assert 'days' in d and d['days'] == s.days
-    assert 'hours' in d and d['hours'] == s.hours
-    assert 'minutes' in d and d['minutes'] == s.minutes
-    assert 'milliseconds' in d and d['milliseconds'] == s.milliseconds
-    assert 'microseconds' in d and d['microseconds'] == s.microseconds
-    assert 'seconds' in d and d['seconds'] == s.seconds
-    assert 'weeks' in d and d['weeks'] == s.weeks
-    assert 'weekdays' in d and d['weekdays'] == s.weekdays, '{} != {}'.format(d['weekdays'], s.weekdays)
-    assert 'repeat' in d and d['repeat'] == s.repeat
-    assert 'at' in d and d['at'] == s.at
-    assert 'start_on' in d and d['start_on'] == s.start_on
-    assert 'end_on' in d and d['end_on'] == s.end_on
-    assert 'last_run' in d and d['last_run'] == s.last_run
-    assert '_next_run' in d and d['_next_run'] == s._next_run
+    assert 'days' not in d or d['days'] == s.days
+    assert 'hours' not in d or d['hours'] == s.hours
+    assert 'minutes' not in d or d['minutes'] == s.minutes
+    assert 'milliseconds' not in d or d['milliseconds'] == s.milliseconds
+    assert 'microseconds' not in d or d['microseconds'] == s.microseconds
+    assert 'seconds' not in d or d['seconds'] == s.seconds
+    assert 'weeks' not in d or d['weeks'] == s.weeks
+    assert 'weekdays' not in d or d['weekdays'] == s.weekdays, '{} != {}'.format(d['weekdays'], s.weekdays)
+    assert 'repeat' not in d or d['repeat'] == s.repeat
+    assert 'at' not in d or d['at'] == s.at
+    assert 'start_on' not in d or d['start_on'] == s.start_on
+    assert 'end_on' not in d or d['end_on'] == s.end_on
+    assert 'last_run' not in d or d['last_run'] == s.last_run
+    assert '_next_run' not in d or d['_next_run'] == s._next_run
 
 
 if __name__ == '__main__':
