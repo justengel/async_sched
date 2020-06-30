@@ -21,11 +21,11 @@ def get_argparse(module_name: str = '', list_schedules: bool = True, parent_pars
         p = parent_parser.add_parser(NAME, help='Update the server command modules.')
 
     p.add_argument('name', type=str, default='', nargs='?',
-                        help='Name of the module to import or reload. If None import/reload all.')
-    p.add_argument('module_name', type=str, default=module_name,
-                        help='Name of the module to import or reload. If None import/reload all.')
+                   help='Name of the module to import or reload. If None import/reload all.')
+    p.add_argument('--module_name', type=str, default=module_name,
+                   help='Name of the module to import or reload. If None import/reload all.')
     p.add_argument('--list_schedules', '-l', type=bool, default=list_schedules,
-                        help='If True print the running schedules')
+                   help='If True print the running schedules')
 
     p.add_argument('--host', type=str, default='127.0.0.1')
     p.add_argument('--port', type=int, default=8000)
