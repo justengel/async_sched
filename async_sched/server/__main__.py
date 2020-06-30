@@ -26,6 +26,9 @@ def get_argparse(list_schedules=True, parent_parser=None):
 
 
 def main(update_path: str = None, host='127.0.0.1', port=8000, **kwargs):
+    # import logging
+    # logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
     srv = start_server((host, port), update_path=update_path, global_server=True)
     srv.run_forever()
 

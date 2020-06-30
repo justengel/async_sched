@@ -11,6 +11,6 @@ def print_task2(name):
 
 
 # Uncomment after running the server, then call python -m async_sched.client update_server, then run this
-# @server.register_callback('async_print')  # or @server.register_callback('print_task2')
-# async def print_task3(name):
-#     print('Async Task 3 is running! ', name, str(datetime.datetime.now()))
+@server.register_callback('async_print')  # or @server.register_callback('print_task2')
+async def print_task3(name):
+    print('Async Task 3 is running! ', name, str(datetime.datetime.now()))

@@ -109,7 +109,7 @@ class Scheduler(object):
         self.ip_address = addr[0]
         self.port = addr[1]
 
-    def update_commands(self):
+    def update_commands(self, module_name: str = ''):
         """Read all of the files in the command path and register those commands to be able to run."""
         if self.update_path is None:
             return
@@ -117,16 +117,22 @@ class Scheduler(object):
         if self.update_path not in sys.path:
             sys.path.insert(0, self.update_path)
 
+        if str(module_name).lower().endswith('.py'):
+            module_name = module_name[:-3]
+
         for filename in os.listdir(self.update_path):
             try:
-                if not filename.startswith('_'):
-                    name = os.path.splitext(filename)[0]
+                name = os.path.splitext(filename)[0]
+                if not name.startswith('_') and (not module_name or module_name == name):
                     if name in sys.modules:
                         reload(sys.modules[name])
+                        self.logger.info(f'Reloaded module {name}')
                     else:
                         mod = __import__(name)  # Use get_server() to register the callback.
+                        self.logger.info(f'Imported module {name}')
             except (ImportError, Exception) as err:
-                print_exception(err, msg='Could not import {}'.format(filename))
+                print_exception(err, msg=f'Could not import {filename}')
+                self.logger.info(f'Could not import {filename}')
 
     @property
     def loop(self) -> 'asyncio.AbstractEventLoop':
@@ -194,9 +200,10 @@ class Scheduler(object):
                 except: pass
 
             elif isinstance(message, Update):
-                self.logger.info('Update Received')
-                self.update_commands()
-                writer.write(Message(message='Updated commands').json().encode())
+                self.logger.info(f'Update "{message.module_name}" Received')
+                self.update_commands(module_name=message.module_name)
+
+                writer.write(Message(message=f'Updated Command {message.module_name}').json().encode())
                 await writer.drain()
 
             elif isinstance(message, ListSchedules):

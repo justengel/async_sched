@@ -22,7 +22,7 @@ class Quit(DataClass):
 
 
 class Update(DataClass):
-    pass
+    module_name: str = ''
 
 
 class RunCommand(DataClass):

@@ -86,9 +86,13 @@ class Client(object):
         print(f'{message.message}')
         return message
 
-    async def send_update(self):
-        """Send the quit command."""
-        self.writer.write(Update().json().encode())
+    async def send_update(self, module_name: str = ''):
+        """Send the quit command.
+
+        Args:
+            module_name (str)['']: Module name to import/reload. If blank import/reload all modules.
+        """
+        self.writer.write(Update(module_name=module_name).json().encode())
         await self.writer.drain()
 
         data = await self.reader.read(self.READ_SIZE)
@@ -114,7 +118,7 @@ class Client(object):
         return message
 
     async def run_command(self, callback_name, *args, **kwargs):
-        """Print the list of schedules."""
+        """Run the given command name on the remote server."""
         self.writer.write(RunCommand(callback_name=callback_name, args=args, kwargs=kwargs).json().encode())
         await self.writer.drain()
 
@@ -124,7 +128,7 @@ class Client(object):
         return message
 
     async def schedule_command(self, name: str, schedule: Schedule, callback_name, *args, **kwargs):
-        """Print the list of schedules."""
+        """Schedule a command to run on the remote server."""
         json = ScheduleCommand(name=name, schedule=schedule,
                                callback_name=callback_name, args=args, kwargs=kwargs).json()
         self.writer.write(json.encode())
@@ -199,31 +203,34 @@ def quit_server(addr: Tuple[str, int], loop: asyncio.AbstractEventLoop = None):
     return loop.run_until_complete(quit_server_async(addr))
 
 
-async def update_server_async(addr: Tuple[str, int], list_schedules: bool = False):
+async def update_server_async(addr: Tuple[str, int], module_name: str = '', list_schedules: bool = False):
     """Send a command to the server to Update Commands by reading files in the command_path
 
     Args:
         addr (tuple): Server IP address
+        module_name (str)['']: Module name to import/reload. If blank import/reload all modules.
         list_schedules (bool)[False]: If True request and print the schedules that the server is running.
     """
     async with Client(addr) as client:
-        msg = await client.send_update()
+        msg = await client.send_update(module_name=module_name)
         if list_schedules:
             msg = await client.request_schedules(print_results=True)
         return msg
 
 
-def update_server(addr: Tuple[str, int], list_schedules: bool = False, loop: asyncio.AbstractEventLoop = None):
+def update_server(addr: Tuple[str, int], module_name: str = '', list_schedules: bool = False,
+                  loop: asyncio.AbstractEventLoop = None):
     """Send a command to the server to Update Commands.
 
     Args:
         addr (tuple): Server IP address
+        module_name (str)['']: Module name to import/reload. If blank import/reload all modules.
         list_schedules (bool)[False]: If True request and print the schedules that the server is running.
         loop (asyncio.AbstractEventLoop)[None]: Event loop to run the async command with.
     """
     if loop is None:
         loop = get_loop()
-    return loop.run_until_complete(update_server_async(addr, list_schedules))
+    return loop.run_until_complete(update_server_async(addr, module_name, list_schedules))
 
 
 async def request_schedules_async(addr: Tuple[str, int], print_results: bool = True):
