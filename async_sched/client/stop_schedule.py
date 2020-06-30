@@ -22,7 +22,7 @@ def get_argparse(list_schedules=True, parent_parser=None):
 
     p.add_argument('name', type=str, help='Name of the schedule you want to stop.')
     p.add_argument('--list_schedules', '-l', type=bool, default=list_schedules,
-                        help='If True print the running schedules')
+                   help='If True print the running schedules')
 
     p.add_argument('--host', type=str, default='127.0.0.1')
     p.add_argument('--port', type=int, default=8000)
