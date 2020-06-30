@@ -6,6 +6,7 @@ python -m async_sched.client.quit_server
 """
 import argparse
 from async_sched.client.client import quit_server
+from async_sched.utils import DEFAULT_HOST, DEFAULT_PORT
 
 
 __all__ = ['NAME', 'get_argparse', 'main']
@@ -14,7 +15,7 @@ __all__ = ['NAME', 'get_argparse', 'main']
 NAME = 'quit_server'
 
 
-def get_argparse(parent_parser=None):
+def get_argparse(host: str = DEFAULT_HOST, port: int = DEFAULT_PORT, parent_parser=None):
     if parent_parser is None:
         p = argparse.ArgumentParser(description='Quit the server')
     else:
@@ -26,7 +27,7 @@ def get_argparse(parent_parser=None):
     return p
 
 
-def main(host='127.0.0.1', port=8000, **kwargs):
+def main(host: str = DEFAULT_HOST, port: int = DEFAULT_PORT, **kwargs):
     quit_server((host, port))
 
 

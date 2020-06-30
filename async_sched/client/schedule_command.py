@@ -4,11 +4,13 @@ module to run with the -m flag
 python -m async_sched.client.schedule_command "Task 1" "print_task" "abc" --seconds 10
 
 """
+import datetime
 import argparse
 import serial_json
 from serial_json import Weekdays
 from async_sched import Schedule
 from async_sched.client.client import schedule_command
+from async_sched.utils import DEFAULT_HOST, DEFAULT_PORT
 
 
 __all__ = ['NAME', 'get_argparse', 'main']
@@ -24,8 +26,11 @@ def parse(value):
         return value
 
 
-def get_argparse(days=0, hours=0, minutes=0, seconds=0, milliseconds=0, microseconds=0, weeks=0, weekdays='',
-                 repeat=False, at=None, start_on=None, end_on=None, next_run=None, parent_parser=None):
+def get_argparse(days: int = 0, hours: int = 0, minutes: int = 0, seconds: float = 0, milliseconds: int = 0,
+                 microseconds: int = 0, weeks: int = 0, weekdays: Weekdays = '', repeat: bool = False,
+                 at: datetime.date = None, start_on: datetime.time = None, end_on: datetime.time = None,
+                 next_run: datetime.datetime = None,
+                 host: str = DEFAULT_HOST, port: int = DEFAULT_PORT, parent_parser=None):
     if parent_parser is None:
         p = argparse.ArgumentParser(description='Schedule one of the registered commands to run.')
     else:
@@ -50,15 +55,17 @@ def get_argparse(days=0, hours=0, minutes=0, seconds=0, milliseconds=0, microsec
     p.add_argument('--end_on', type=str, default=end_on, help='Schedule field')
     p.add_argument('--next_run', type=str, default=next_run, help='Schedule field')
 
-    p.add_argument('--host', type=str, default='127.0.0.1')
-    p.add_argument('--port', type=int, default=8000)
+    p.add_argument('--host', type=str, default=host)
+    p.add_argument('--port', type=int, default=port)
 
     return p
 
 
-def main(name, callback_name, args, days=0, hours=0, minutes=0, seconds=0, milliseconds=0, microseconds=0, weeks=0,
-         weekdays='', repeat=False, at=None, start_on=None, end_on=None, next_run=None,
-         host='127.0.0.1', port=8000, **kwargs):
+def main(name: str, callback_name: str, args: tuple, days: int = 0, hours: int = 0, minutes: int = 0,
+         seconds: float = 0, milliseconds: int = 0, microseconds: int = 0, weeks: int = 0,
+         weekdays: Weekdays = '', repeat: bool = False, at: datetime.date = None,
+         start_on: datetime.time = None, end_on: datetime.time = None, next_run: datetime.datetime = None,
+         host: str = DEFAULT_HOST, port: int = DEFAULT_PORT, **kwargs):
 
     args = (parse(arg) for arg in args)
     weekdays = Weekdays(str(weekdays).split(','))

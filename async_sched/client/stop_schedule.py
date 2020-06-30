@@ -6,6 +6,7 @@ python -m async_sched.client.stop_schedule "Task 1" --list_schedules 1
 """
 import argparse
 from async_sched.client.client import stop_schedule
+from async_sched.utils import DEFAULT_HOST, DEFAULT_PORT
 
 
 __all__ = ['NAME', 'get_argparse', 'main']
@@ -14,7 +15,7 @@ __all__ = ['NAME', 'get_argparse', 'main']
 NAME = 'stop_schedule'
 
 
-def get_argparse(list_schedules=True, parent_parser=None):
+def get_argparse(list_schedules: bool = True, host: str = DEFAULT_HOST, port: int = DEFAULT_PORT, parent_parser=None):
     if parent_parser is None:
         p = argparse.ArgumentParser(description='Stop running a schedule.')
     else:
@@ -24,13 +25,13 @@ def get_argparse(list_schedules=True, parent_parser=None):
     p.add_argument('--list_schedules', '-l', type=bool, default=list_schedules,
                    help='If True print the running schedules')
 
-    p.add_argument('--host', type=str, default='127.0.0.1')
-    p.add_argument('--port', type=int, default=8000)
+    p.add_argument('--host', type=str, default=host)
+    p.add_argument('--port', type=int, default=port)
 
     return p
 
 
-def main(list_schedules=True, host='127.0.0.1', port=8000, **kwargs):
+def main(list_schedules: bool = True, host: str = DEFAULT_HOST, port: int = DEFAULT_PORT, **kwargs):
     stop_schedule((host, port), list_schedules=list_schedules)
 
 

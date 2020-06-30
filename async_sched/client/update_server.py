@@ -6,6 +6,7 @@ python -m async_sched.client.update_server --list_schedules 1
 """
 import argparse
 from async_sched.client.client import update_server
+from async_sched.utils import DEFAULT_HOST, DEFAULT_PORT
 
 
 __all__ = ['NAME', 'get_argparse', 'main']
@@ -14,7 +15,8 @@ __all__ = ['NAME', 'get_argparse', 'main']
 NAME = 'update_server'
 
 
-def get_argparse(module_name: str = '', list_schedules: bool = True, parent_parser=None):
+def get_argparse(module_name: str = '', list_schedules: bool = True,
+                 host: str = DEFAULT_HOST, port: int = DEFAULT_PORT, parent_parser=None):
     if parent_parser is None:
         p = argparse.ArgumentParser(description='Update the server command modules.')
     else:
@@ -27,14 +29,14 @@ def get_argparse(module_name: str = '', list_schedules: bool = True, parent_pars
     p.add_argument('--list_schedules', '-l', type=bool, default=list_schedules,
                    help='If True print the running schedules')
 
-    p.add_argument('--host', type=str, default='127.0.0.1')
-    p.add_argument('--port', type=int, default=8000)
+    p.add_argument('--host', type=str, default=host)
+    p.add_argument('--port', type=int, default=port)
 
     return p
 
 
-def main(name: str = '', module_name: str = '', list_schedules: bool = True, host: str = '127.0.0.1', port: int = 8000,
-         **kwargs):
+def main(name: str = '', module_name: str = '', list_schedules: bool = True,
+         host: str = DEFAULT_HOST, port: int = DEFAULT_PORT, **kwargs):
     if name:
         module_name = name
     update_server((host, port), module_name=module_name, list_schedules=list_schedules)

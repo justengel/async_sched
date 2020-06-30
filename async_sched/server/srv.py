@@ -36,7 +36,8 @@ def set_server(value):
 
 
 def start_server(addr: Union[str, Tuple[str, int]] = None, port: int = 8000, update_path: str = None,
-                 global_server: bool = False, logger: logging.Logger = None, loop: asyncio.AbstractEventLoop = None):
+                 global_server: bool = False, set_env: bool = False,
+                 logger: logging.Logger = None, loop: asyncio.AbstractEventLoop = None):
     """Create a scheduler and start it as a server.
 
     Args:
@@ -44,14 +45,18 @@ def start_server(addr: Union[str, Tuple[str, int]] = None, port: int = 8000, upd
         port (int)[8000]: Socket port to connect to.
         update_path (str)[None]: Path to directory that holds importable python files to run schedules with.
         global_server (bool)[False]: If True set this server as the main global server.
+        set_env (bool)[False]: Set this address as the environment variable.
         logger (logging.Logger)[None]: Python logger
         loop (asyncio.AbstractEventLoop)[None]: Async event loop to run with if None use the running loop.
     """
-    srv = Scheduler(update_path=update_path, logger=logger, loop=loop)
+    srv = Scheduler(addr=addr, port=port, update_path=update_path, logger=logger, loop=loop)
     if global_server:
         set_server(srv)
+    if set_env:
+        os.environ['ASYNC_SCHED_HOST'] = str(srv.ip_address)
+        os.environ['ASYNC_SCHED_PORT'] = str(srv.port)
 
-    srv.start(addr)
+    srv.start()
     srv.update_commands()
     return srv
 

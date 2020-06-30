@@ -1,3 +1,4 @@
+import os
 import datetime
 import sys
 import traceback
@@ -5,9 +6,17 @@ import asyncio
 import inspect
 from typing import Callable, Awaitable
 
-__all__ = ['call', 'call_async', 'get_loop',
+
+__all__ = ['DEFAULT_HOST', 'DEFAULT_PORT', 'call', 'call_async', 'get_loop',
            'ScheduleError', 'print_exception', 'get_traceback',
            'is_ignored', 'ignore_exception', 'stop_ignore_exception']
+
+
+DEFAULT_HOST = os.getenv('ASYNC_SCHED_HOST', '127.0.0.1')
+try:
+    DEFAULT_PORT = int(os.getenv('ASYNC_SCHED_PORT', '8000'))
+except:
+    DEFAULT_PORT = 8000
 
 
 def call(callback: Callable[..., Awaitable[None]] = None, *args, **kwargs):
