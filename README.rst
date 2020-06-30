@@ -91,8 +91,8 @@ Stop a schedule that is running.
 
 Run a registered callback function.
 
-    python -m async_sched.client.run_command "print_task2" "hello" --host "127.0.0.1" --port 8000
+    python -m async_sched.client run_command "print_task2" "hello" --host "127.0.0.1" --port 8000
 
 Schedule a registered command.
 
-    python -m async_sched.client.schedule_command "print_task2" "hello" --seconds 10 --host "127.0.0.1" --port 8000
+    python -m async_sched.client schedule_command "print_task2" "hello" --seconds 10 --host "127.0.0.1" --port 8000
