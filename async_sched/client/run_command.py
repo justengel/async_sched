@@ -24,13 +24,16 @@ def parse(value):
 
 def get_argparse(parent_parser=None):
     if parent_parser is None:
-        parser = argparse.ArgumentParser(description='Run a registered command on the server.')
+        p = argparse.ArgumentParser(description='Run a registered command on the server.')
     else:
-        parser = parent_parser.add_parser(NAME, help='Run a registered command on the server.')
+        p = parent_parser.add_parser(NAME, help='Run a registered command on the server.')
 
-    parser.add_argument('callback_name', help='Registered callback name to run.')
-    parser.add_argument('args', nargs='*', help='Positional arguments to pass into the callback function.')
-    return parser
+    p.add_argument('callback_name', help='Registered callback name to run.')
+    p.add_argument('args', nargs='*', help='Positional arguments to pass into the callback function.')
+    p.add_argument('--host', type=str, default='127.0.0.1')
+    p.add_argument('--port', type=int, default=8000)
+
+    return p
 
 
 def main(callback_name, args, host='127.0.0.1', port=8000, **kwargs):
@@ -40,8 +43,6 @@ def main(callback_name, args, host='127.0.0.1', port=8000, **kwargs):
 
 if __name__ == '__main__':
     P = get_argparse()
-    P.add_argument('--host', type=str, default='127.0.0.1')
-    P.add_argument('--port', type=int, default=8000)
     ARGS = P.parse_args()
 
     KWARGS = {n: getattr(ARGS, n) for n in dir(ARGS) if not n.startswith('_') and getattr(ARGS, n, None) is not None}

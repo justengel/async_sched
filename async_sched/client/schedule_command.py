@@ -50,6 +50,9 @@ def get_argparse(days=0, hours=0, minutes=0, seconds=0, milliseconds=0, microsec
     p.add_argument('--end_on', type=str, default=end_on, help='Schedule field')
     p.add_argument('--next_run', type=str, default=next_run, help='Schedule field')
 
+    p.add_argument('--host', type=str, default='127.0.0.1')
+    p.add_argument('--port', type=int, default=8000)
+
     return p
 
 
@@ -69,8 +72,6 @@ def main(name, callback_name, args, days=0, hours=0, minutes=0, seconds=0, milli
 
 if __name__ == '__main__':
     P = get_argparse()
-    P.add_argument('--host', type=str, default='127.0.0.1')
-    P.add_argument('--port', type=int, default=8000)
     ARGS = P.parse_args()
 
     KWARGS = {n: getattr(ARGS, n) for n in dir(ARGS) if not n.startswith('_') and getattr(ARGS, n, None) is not None}

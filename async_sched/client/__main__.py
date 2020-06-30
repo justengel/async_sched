@@ -24,12 +24,8 @@ if __name__ == '__main__':
                    }
 
     P = argparse.ArgumentParser(description='Run a client command.')
-
     SUBCOMMANDS = P.add_subparsers(required=True, dest='subcommand', help='Run a sub-command.')
     PARSERS = {NAME: MODULE.get_argparse(parent_parser=SUBCOMMANDS) for NAME, MODULE in SUB_MODULES.items()}
-
-    P.add_argument('--host', type=str, default='127.0.0.1')
-    P.add_argument('--port', type=int, default=8000)
     ARGS, REMAINING = P.parse_known_args()
 
     SUB_MODULES[ARGS.subcommand].main(**{n: getattr(ARGS, n) for n in dir(ARGS)

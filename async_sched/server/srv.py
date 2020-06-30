@@ -47,7 +47,7 @@ def start_server(addr: Union[str, Tuple[str, int]] = None, port: int = 8000, upd
         logger (logging.Logger)[None]: Python logger
         loop (asyncio.AbstractEventLoop)[None]: Async event loop to run with if None use the running loop.
     """
-    srv = Scheduler(addr=addr, port=port, update_path=update_path, logger=logger, loop=loop)
+    srv = Scheduler(update_path=update_path, logger=logger, loop=loop)
     if global_server:
         set_server(srv)
 
