@@ -1,5 +1,5 @@
 name = 'async_sched'
-version = '1.2.0'
+version = '1.2.1'
 description = 'Use async to have functions run on a schedule.'
 url = 'https://github.com/justengel/async_sched'
 author = 'Justin Engel'
