@@ -2,9 +2,10 @@ import asyncio
 from typing import Union, Tuple
 
 from serial_json import DataClass
-from ..schedule import Schedule
 
-from .messages import Quit, Update, RunCommand, ScheduleCommand, ListSchedules, StopSchedule
+from async_sched.utils import get_loop
+from async_sched.schedule import Schedule
+from async_sched.server.messages import Quit, Update, RunCommand, ScheduleCommand, ListSchedules, StopSchedule
 
 
 __all__ = ['Client',
@@ -37,10 +38,7 @@ class Client(object):
     def loop(self) -> 'asyncio.AbstractEventLoop':
         if self._loop is not None:
             return self._loop
-        try:
-            return asyncio.get_running_loop()
-        except (RuntimeError, Exception):
-            return asyncio.get_event_loop()
+        return get_loop()
 
     @loop.setter
     def loop(self, loop: asyncio.AbstractEventLoop):
@@ -197,7 +195,7 @@ def quit_server(addr: Tuple[str, int], loop: asyncio.AbstractEventLoop = None):
         loop (asyncio.AbstractEventLoop)[None]: Event loop to run the async command with.
     """
     if loop is None:
-        loop = asyncio.get_running_loop() or asyncio.get_event_loop()
+        loop = get_loop()
     return loop.run_until_complete(quit_server_async(addr))
 
 
@@ -211,7 +209,7 @@ async def update_server_async(addr: Tuple[str, int], list_schedules: bool = Fals
     async with Client(addr) as client:
         msg = await client.send_update()
         if list_schedules:
-            msg = await client.request_schedules()
+            msg = await client.request_schedules(print_results=True)
         return msg
 
 
@@ -224,18 +222,19 @@ def update_server(addr: Tuple[str, int], list_schedules: bool = False, loop: asy
         loop (asyncio.AbstractEventLoop)[None]: Event loop to run the async command with.
     """
     if loop is None:
-        loop = asyncio.get_running_loop() or asyncio.get_event_loop()
+        loop = get_loop()
     return loop.run_until_complete(update_server_async(addr, list_schedules))
 
 
-async def request_schedules_async(addr: Tuple[str, int]):
+async def request_schedules_async(addr: Tuple[str, int], print_results: bool = True):
     """Send a command to the server to Update Commands by reading files in the command_path
 
     Args:
         addr (tuple): Server IP address
+        print_results (bool)[True]: If true print the schedules that were returned.
     """
     async with Client(addr) as client:
-        return await client.request_schedules()
+        return await client.request_schedules(print_results=print_results)
 
 
 def request_schedules(addr: Tuple[str, int], print_results: bool = True, loop: asyncio.AbstractEventLoop = None):
@@ -247,7 +246,7 @@ def request_schedules(addr: Tuple[str, int], print_results: bool = True, loop: a
         loop (asyncio.AbstractEventLoop)[None]: Event loop to run the async command with.
     """
     if loop is None:
-        loop = asyncio.get_running_loop() or asyncio.get_event_loop()
+        loop = get_loop()
     return loop.run_until_complete(request_schedules_async(addr, print_results=print_results))
 
 
@@ -280,7 +279,7 @@ def run_command(addr: Tuple[str, int],
         loop (asyncio.AbstractEventLoop)[None]: Event loop to run the async command with.
     """
     if loop is None:
-        loop = asyncio.get_running_loop() or asyncio.get_event_loop()
+        loop = get_loop()
     return loop.run_until_complete(run_command_async(addr, callback_name, *args, **kwargs))
 
 
@@ -322,32 +321,38 @@ def schedule_command(addr: Tuple[str, int],
         loop (asyncio.AbstractEventLoop)[None]: Event loop to run the async command with.
     """
     if loop is None:
-        loop = asyncio.get_running_loop() or asyncio.get_event_loop()
+        loop = get_loop()
     return loop.run_until_complete(schedule_command_async(addr, name, schedule, callback_name, *args, **kwargs))
 
 
-async def stop_schedule_async(addr: Tuple[str, int], name: str = ''):
+async def stop_schedule_async(addr: Tuple[str, int], name: str = '', list_schedules: bool = False):
     """Send a command to the server to stop running a schedule.
 
     Args:
         addr (tuple): Server IP address
         name (str)['']: Name of the schedule.
+        list_schedules (bool)[False]: If True request and print the schedules that the server is running.
     """
     if not name:
         raise ValueError('Must give a name to keep track of the schedule!')
 
     async with Client(addr) as client:
-        return await client.stop_schedule(name)
+        msg = await client.stop_schedule(name)
+        if list_schedules:
+            msg = await client.request_schedules(print_results=True)
+        return msg
 
 
-def stop_schedule(addr: Tuple[str, int], name: str = '', loop: asyncio.AbstractEventLoop = None):
+def stop_schedule(addr: Tuple[str, int], name: str = '', list_schedules: bool = False,
+                  loop: asyncio.AbstractEventLoop = None):
     """Send a command to the server to stop running a schedule.
 
     Args:
         addr (tuple): Server IP address
         name (str)['']: Name of the schedule.
+        list_schedules (bool)[False]: If True request and print the schedules that the server is running.
         loop (asyncio.AbstractEventLoop)[None]: Event loop to run the async command with.
     """
     if loop is None:
-        loop = asyncio.get_running_loop() or asyncio.get_event_loop()
-    return loop.run_until_complete(stop_schedule_async(addr, name))
+        loop = get_loop()
+    return loop.run_until_complete(stop_schedule_async(addr, name, list_schedules=list_schedules))

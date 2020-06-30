@@ -1,10 +1,41 @@
 import datetime
 import sys
 import traceback
+import asyncio
+import inspect
+from typing import Callable, Awaitable
 
-
-__all__ = ['ScheduleError', 'print_exception', 'get_traceback',
+__all__ = ['call', 'call_async', 'get_loop',
+           'ScheduleError', 'print_exception', 'get_traceback',
            'is_ignored', 'ignore_exception', 'stop_ignore_exception']
+
+
+def call(callback: Callable[..., Awaitable[None]] = None, *args, **kwargs):
+    """Call the given callback function. This function can be a normal function or a coroutine."""
+    loop = kwargs.pop('LOOP', get_loop())
+
+    if inspect.iscoroutinefunction(callback):
+        return loop.run_until_complete(callback(*args, **kwargs))
+    elif callable(callback):
+        return callback(*args, **kwargs)
+
+
+async def call_async(callback: Callable[..., Awaitable[None]] = None, *args, **kwargs):
+    """Call the given callback function. This function can be a normal function or a coroutine."""
+    loop = kwargs.pop('LOOP', None)
+
+    if inspect.iscoroutinefunction(callback):
+        return await callback(*args, **kwargs)
+    elif callable(callback):
+        return callback(*args, **kwargs)
+
+
+def get_loop():
+    """Get the running event loop or a new event loop."""
+    try:
+        return asyncio.get_running_loop()
+    except (RuntimeError, Exception):
+        return asyncio.get_event_loop()
 
 
 # ========== Exception Handling ==========

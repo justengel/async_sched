@@ -9,6 +9,8 @@ from serial_json import DataClass, field, field_property, MISSING, \
     Weekdays, weekdays_property, weekdays_attr_property, \
     datetime_property, time_property, timedelta_attr_property, seconds_property, make_datetime
 
+from .utils import call, call_async
+
 
 __all__ = ['Schedule', 'RepeatSchedule']
 
@@ -188,8 +190,7 @@ class Schedule(DataClass):
         self.logger.info(f'Running Task "{task}" with {self}')
 
         try:
-            if callable(callback):
-                return callback(*args, **kwargs)
+            return call(callback, *args, **kwargs)
         except Exception as err:
             self.logger.critical(f'Error in Task "{task}": {err}')
 
@@ -202,10 +203,7 @@ class Schedule(DataClass):
         self.logger.info(f'Running Task "{task}" with {self}')
 
         try:
-            if inspect.iscoroutinefunction(callback):
-                return await callback(*args, **kwargs)
-            elif callable(callback):
-                return callback(*args, **kwargs)
+            return await call_async(callback, *args, **kwargs)
         except Exception as err:
             self.logger.critical(f'Error in Task "{task}": {err}')
 

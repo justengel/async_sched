@@ -6,13 +6,18 @@ from typing import Callable, Awaitable, Union, Tuple
 
 from serial_json import DataClass, loads, dumps
 
-from ..utils import print_exception
+try:
+    from importlib import reload
+except (ImportError, Exception):
+    from imp import reload
+
+from ..utils import print_exception, get_loop, call, call_async
 from ..schedule import Schedule
 from .messages import Message, Error, Quit, Update, RunCommand, ScheduleCommand, RunningSchedule, \
     ListSchedules, StopSchedule
 
 
-__all__ = ['get_server', 'set_server', 'start_server', 'Scheduler']
+__all__ = ['get_server', 'set_server', 'start_server', 'FakeScheduler', 'Scheduler']
 
 
 SERVER = None
@@ -20,6 +25,8 @@ SERVER = None
 
 def get_server():
     global SERVER
+    if SERVER is None:
+        return FakeScheduler()
     return SERVER
 
 
@@ -28,38 +35,60 @@ def set_server(value):
     SERVER = value
 
 
-def start_server(addr: Union[str, Tuple[str, int]] = None, port: int = 8000, command_path=None,
+def start_server(addr: Union[str, Tuple[str, int]] = None, port: int = 8000, update_path: str = None,
                  global_server: bool = False, logger: logging.Logger = None, loop: asyncio.AbstractEventLoop = None):
     """Create a scheduler and start it as a server.
 
     Args:
         addr (str/tuple)[None]: Ip address or tuple of ip address, port.
         port (int)[8000]: Socket port to connect to.
-        command_path (str)[None]: Path to directory that holds importable python files to run schedules with.
+        update_path (str)[None]: Path to directory that holds importable python files to run schedules with.
         global_server (bool)[False]: If True set this server as the main global server.
         logger (logging.Logger)[None]: Python logger
         loop (asyncio.AbstractEventLoop)[None]: Async event loop to run with if None use the running loop.
     """
-    srv = Scheduler(addr=addr, port=port, command_path=command_path, logger=logger, loop=loop)
+    srv = Scheduler(addr=addr, port=port, update_path=update_path, logger=logger, loop=loop)
     if global_server:
         set_server(srv)
 
     srv.start(addr)
+    srv.update_commands()
     return srv
+
+
+class FakeScheduler(object):
+    def register_callback(self, name: str = None, func: Callable[..., Awaitable[None]] = None):
+        if callable(name) and func is None:
+            func = name
+            name = None
+
+        if func is None:
+            def decorator(func):
+                return self.register_callback(name, func)
+            return decorator
+        return func
+
+    def __getattr__(self, item):
+        if item == 'register_callback':
+            return super().__getattr__(item)
+
+        def fake(*args, **kwargs):
+            return type(self)()
+        return fake
 
 
 class Scheduler(object):
 
     READ_SIZE = 4096
 
-    def __init__(self, addr: Union[str, Tuple[str, int]] = None, port: int = 8000, command_path=None,
+    def __init__(self, addr: Union[str, Tuple[str, int]] = None, port: int = 8000, update_path=None,
                  logger: logging.Logger = None, loop: asyncio.AbstractEventLoop = None):
         """Create a scheduler and start it as a server.
 
         Args:
             addr (str/tuple)[None]: Ip address or tuple of ip address, port.
             port (int)[8000]: Socket port to connect to.
-            command_path (str)[None]: Path to directory that holds importable python files to run schedules with.
+            update_path (str)[None]: Path to directory that holds importable python files to run schedules with.
             logger (logging.Logger)[None]: Python logger
             loop (asyncio.AbstractEventLoop)[None]: Async event loop to run with if None use the running loop.
         """
@@ -71,7 +100,7 @@ class Scheduler(object):
         self._loop = loop
         self.logger = logger or logging.getLogger("asyncio")
 
-        self.command_path = command_path
+        self.update_path = update_path
         self.tasks = {}
         self.callbacks = {}
         self.server = None
@@ -82,16 +111,20 @@ class Scheduler(object):
 
     def update_commands(self):
         """Read all of the files in the command path and register those commands to be able to run."""
-        if self.command_path is None:
+        if self.update_path is None:
             return
 
-        if self.command_path not in sys.path:
-            sys.path.insert(0, self.command_path)
+        if self.update_path not in sys.path:
+            sys.path.insert(0, self.update_path)
 
-        for filename in os.listdir(self.command_path):
+        for filename in os.listdir(self.update_path):
             try:
-                name = os.path.splitext(filename)[0]
-                mod = __import__(name)  # Use get_server() to register the callback.
+                if not filename.startswith('_'):
+                    name = os.path.splitext(filename)[0]
+                    if name in sys.modules:
+                        reload(sys.modules[name])
+                    else:
+                        mod = __import__(name)  # Use get_server() to register the callback.
             except (ImportError, Exception) as err:
                 print_exception(err, msg='Could not import {}'.format(filename))
 
@@ -99,10 +132,7 @@ class Scheduler(object):
     def loop(self) -> 'asyncio.AbstractEventLoop':
         if self._loop is not None:
             return self._loop
-        try:
-            return asyncio.get_running_loop()
-        except (RuntimeError, Exception):
-            return asyncio.get_event_loop()
+        return get_loop()
 
     @loop.setter
     def loop(self, loop: asyncio.AbstractEventLoop):
@@ -158,6 +188,10 @@ class Scheduler(object):
                 writer.write(Message(message='Stopping server').json().encode())
                 await writer.drain()
                 await self.stop_async()
+                try: self.loop.stop()
+                except: pass
+                try: self.loop.close()
+                except: pass
 
             elif isinstance(message, Update):
                 self.logger.info('Update Received')
@@ -180,7 +214,7 @@ class Scheduler(object):
                 self.logger.info(f'Run Command "{message.callback_name}" Received')
                 try:
                     cmd = self.callbacks[message.callback_name]
-                    cmd(*message.args, **message.kwargs)
+                    await call_async(cmd, *message.args, **message.kwargs)
                     writer.write(Message(message='Command "{}" ran successfully!'.format(message.callback_name)).json().encode())
                 except Exception as err:
                     print_exception(err, msg='Could not run command "{}"'.format(message.callback_name))
