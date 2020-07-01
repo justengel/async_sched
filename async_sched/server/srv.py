@@ -339,13 +339,17 @@ class Scheduler(object):
         Args:
             name (str): Name of the schedule
         """
-        for task in asyncio.all_tasks(self.loop):
-            if name == task.get_name():
-                task.cancel()
-                break
         try:
-            self.tasks.pop(name)
-        except:
+            task, sched = self.tasks.pop(name)
+            try:
+                task.cancel()
+            except:
+                pass
+            try:
+                sched.stop()
+            except:
+                pass
+        except (KeyError, Exception):
             pass
 
     # ========== Loop Functions ==========

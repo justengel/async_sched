@@ -9,7 +9,7 @@ from serial_json import DataClass, field, field_property, MISSING, \
     Weekdays, weekdays_property, weekdays_attr_property, \
     datetime_property, time_property, timedelta_attr_property, seconds_property, make_datetime
 
-from .utils import call, call_async
+from .utils import call, call_async, get_loop
 
 
 __all__ = ['Schedule', 'RepeatSchedule']
@@ -219,6 +219,15 @@ class Schedule(DataClass):
             await self.call_async(callback, *args, **kwargs)
         return self
 
+    def start_task(self, callback: Callable[..., Awaitable[None]] = None, *args,
+                   loop: asyncio.AbstractEventLoop = None, task_name: str = None,
+                   **kwargs) -> 'asyncio.Task':
+        """Start running this schedule as a task."""
+        if loop is None:
+            loop = get_loop()
+        task = loop.create_task(self.run_async(callback, *args, **kwargs), name=task_name)
+        return task
+
     def allowed_weekdays(self) -> Tuple[str]:
         """Return if all of the days of the week are None."""
         return tuple(self.weekdays)
@@ -263,6 +272,28 @@ class Schedule(DataClass):
                 return None
 
         return dt
+
+    def stop(self, loop: asyncio.AbstractEventLoop = None):
+        """Stop running all tasks associated with this schedule"""
+        if loop is None:
+            loop = get_loop()
+        self.end_on = datetime.datetime.now()
+        try:
+            # Assume only one task runs this schedule or stop cancels all tasks with this schedule.
+            for task in asyncio.all_tasks(loop):
+                try:
+                    if inspect.getcoroutinelocals(task.get_coro())['self'] == self:
+                        task.cancel()
+                except:
+                    pass
+        except:
+            pass
+
+    async def stop_async(self, ):
+        self.stop()
+
+    cancel = stop
+    cancel_async = stop_async
 
 
 class RepeatSchedule(Schedule):
